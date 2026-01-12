@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Для тебя ❤️</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #000;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #fff;
+    }
+    canvas {
+      display: block;
+    }
+    .text {
+      position: fixed;
+      top: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 34px;
+      letter-spacing: 1.5px;
+      color: #ff4b7d;
+      text-shadow: 0 0 14px rgba(255, 75, 125, 1);
+      pointer-events: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="heartCanvas"></canvas>
+  <div class="text">Я очень тебя люблю ❤️</div>
+
+  <script>
+    const canvas = document.getElementById("heartCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    // 1000 точек
+    const total = 1000;
+    const points = [];
+    for (let i = 0; i < total; i++) {
+      const t = (Math.PI * 2 * i) / total;
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y =
+        13 * Math.cos(t) -
+        5 * Math.cos(2 * t) -
+        2 * Math.cos(3 * t) -
+        Math.cos(4 * t);
+      points.push({ x, y });
+    }
+
+    // Слои
+    const layers = [];
+    function makeLayer(step) {
+      const layer = [];
+      for (let i = 0; i < total; i += step) {
+        layer.push(i);
+      }
+      layers.push(layer);
+    }
+
+    makeLayer(60);
+    makeLayer(30);
+    makeLayer(15);
+    makeLayer(7);
+    makeLayer(3);
+    makeLayer(1);
+
+    // Объединяем в один поток
+    const sequence = [];
+    for (let layer of layers) {
+      for (let idx of layer) {
+        if (!sequence.includes(idx)) sequence.push(idx);
+      }
+    }
+
+    let visible = 0;
+    const speed = 6;
+
+    // Пульсация
+    let pulseTime = 0;
+    let animationFinished = false;
+
+    function drawFrame() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, w, h);
+
+      const centerX = w / 2;
+      const centerY = h / 2 - 20;
+
+      let scale = Math.min(w, h) / 32;
+
+      // Плавная синусоидальная пульсация + свечение
+      let glow = 16;
+      if (animationFinished) {
+        pulseTime += 0.06;
+        const pulse = Math.sin(pulseTime) * 0.08;
+        scale *= 1 + pulse;
+
+        // Свечение тоже дышит
+        glow = 16 + Math.sin(pulseTime) * 12;
+      }
+
+      ctx.strokeStyle = "rgba(255, 40, 80, 0.9)";
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = "rgba(255, 50, 100, 1)";
+      ctx.shadowBlur = glow;
+
+      // Рисуем линии
+      for (let i = 0; i < visible && i < sequence.length; i++) {
+        const idx = sequence[i];
+        const p = points[idx];
+        const x = centerX + p.x * scale;
+        const y = centerY - p.y * scale;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+
+      // Увеличиваем количество видимых линий
+      if (visible < sequence.length) {
+        visible += speed;
+      } else {
+        animationFinished = true;
+      }
+
+      requestAnimationFrame(drawFrame);
+    }
+
+    drawFrame();
+  </script>
+</body>
+</html>
